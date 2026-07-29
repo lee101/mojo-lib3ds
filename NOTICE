@@ -1,0 +1,7 @@
+mojo-lib3ds is an independent Mojo/Python implementation informed by lib3ds.
+
+lib3ds copyright (C) 1996-2007 Jan Eric Kyprianidis.
+lib3ds is available under GNU Lesser General Public License version 2.1 or
+later. No lib3ds source code is included in this distribution.
+
+This implementation is Copyright (c) 2026 Lee Penkman and licensed under MIT.
