@@ -22,16 +22,16 @@ def u32p(address: Int) -> U32Ptr:
 
 # lib3ds: lib3ds/vector.c lib3ds_vector_normalize
 @always_inline
-def normalize(x: Float32, y: Float32, z: Float32) -> SIMD[DType.float32, 3]:
+def normalize(x: Float32, y: Float32, z: Float32) -> SIMD[DType.float32, 4]:
     var length = sqrt(x * x + y * y + z * z)
     if abs(length) < 1.0e-8:
         if x >= y and x >= z:
-            return SIMD[DType.float32, 3](1.0, 0.0, 0.0)
+            return SIMD[DType.float32, 4](1.0, 0.0, 0.0, 0.0)
         if y >= z:
-            return SIMD[DType.float32, 3](0.0, 1.0, 0.0)
-        return SIMD[DType.float32, 3](0.0, 0.0, 1.0)
+            return SIMD[DType.float32, 4](0.0, 1.0, 0.0, 0.0)
+        return SIMD[DType.float32, 4](0.0, 0.0, 1.0, 0.0)
     var inverse = 1.0 / length
-    return SIMD[DType.float32, 3](x * inverse, y * inverse, z * inverse)
+    return SIMD[DType.float32, 4](x * inverse, y * inverse, z * inverse, 0.0)
 
 
 # lib3ds: lib3ds/mesh.c lib3ds_mesh_calculate_normals
@@ -197,10 +197,10 @@ def transform_points(
 @always_inline
 def matrix_multiply(
     left: F32Ptr,
-    right: InlineArray[Float32, 16],
+    right: SIMD[DType.float32, 16],
     destination: F32Ptr,
 ):
-    var temporary = InlineArray[Float32, 16](fill=0.0)
+    var temporary = SIMD[DType.float32, 16](0.0)
     for column in range(4):
         for row in range(4):
             for k in range(4):
@@ -232,7 +232,7 @@ def compose_nodes(
         var parent = Int(parents[node])
         if parent >= node or parent < -1:
             return 0
-        var local = InlineArray[Float32, 16](fill=0.0)
+        var local = SIMD[DType.float32, 16](0.0)
         local[0] = 1.0
         local[5] = 1.0
         local[10] = 1.0
