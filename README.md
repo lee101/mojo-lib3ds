@@ -111,16 +111,23 @@ across a reusable host thread pool.
 Measured by `pixi run bench` on this machine: Intel Xeon E5-2697 v4 at
 2.30 GHz, Linux 6.8.0-136-generic, glibc 2.39. Times are the best of repeated
 warm runs. The references are the source-derived NumPy implementation for
-normals, vectorized NumPy for transforms, and Assimp 6.0.5 through `pyassimp`
-for full Python scene extraction. A ratio above one means mojo-lib3ds was
-faster.
+normals, vectorized NumPy for transforms and bounds, and Assimp 6.0.5 through
+`pyassimp` for full Python scene extraction. A ratio above one means
+mojo-lib3ds was faster.
 
 | case | mojo-lib3ds | reference | reference / Mojo |
 |---|---:|---:|---:|
-| corner normals (12,800 faces) | 41.408 ms | 1375.803 ms | 33.23x |
-| point transform (1,000,000 points) | 2.509 ms | 16.892 ms | 6.73x |
-| 3DS parse (51,200 faces) | 1.322 ms | 985.114 ms | 745.20x |
+| corner normals (12,800 faces) | 40.748 ms | 1519.519 ms | 37.29x |
+| point transform (1,000,000 points) | 2.045 ms | 16.461 ms | 8.05x |
+| bounding box (1,000,000 points) | 11.310 ms | 72.694 ms | 6.43x |
+| 3DS parse (51,200 faces) | 1.355 ms | 863.733 ms | 637.25x |
 
 The parse comparison includes pyassimp's Python object conversion. It is a
 full API-level extraction comparison, not a claim about Assimp's C parser
-alone. No GPU path is included.
+alone.
+
+No GPU path is included. Point transforms and bounding boxes have less than
+one flop per byte moved, normal generation is dominated by irregular mesh
+adjacency, and node composition has parent dependencies. None has the greater
+than two flops per byte and independent large workload needed to justify GPU
+transfer and launch overhead for 3DS-sized meshes.

@@ -104,6 +104,15 @@ def main() -> None:
         )
     )
 
+    transform_mesh.bounding_box()
+    rows.append(
+        (
+            "bounding box (1,000,000 points)",
+            best(transform_mesh.bounding_box, repeat=5),
+            best(lambda: (points.min(axis=0), points.max(axis=0)), repeat=5),
+        )
+    )
+
     io_mesh = grid(160)
     data = Scene(meshes=[io_mesh]).to_bytes()
     with tempfile.NamedTemporaryFile(suffix=".3ds", delete=False) as temporary:
