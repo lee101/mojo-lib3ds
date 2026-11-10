@@ -109,7 +109,7 @@ across a reusable host thread pool.
 ## Benchmarks
 
 Measured by `pixi run bench` on this machine: Intel Xeon E5-2697 v4 at
-2.30 GHz, Linux 6.8.0-136-generic, glibc 2.39. Times are the best of repeated
+2.30 GHz, Linux 6.8.0-147-generic, glibc 2.39. Times are the best of repeated
 warm runs. The references are the source-derived NumPy implementation for
 normals, vectorized NumPy for transforms and bounds, and Assimp 6.0.5 through
 `pyassimp` for full Python scene extraction. A ratio above one means
@@ -117,10 +117,18 @@ mojo-lib3ds was faster.
 
 | case | mojo-lib3ds | reference | reference / Mojo |
 |---|---:|---:|---:|
-| corner normals (12,800 faces) | 40.748 ms | 1519.519 ms | 37.29x |
-| point transform (1,000,000 points) | 2.045 ms | 16.461 ms | 8.05x |
-| bounding box (1,000,000 points) | 11.310 ms | 72.694 ms | 6.43x |
-| 3DS parse (51,200 faces) | 1.355 ms | 863.733 ms | 637.25x |
+| corner normals (12,800 faces) | 40.192 ms | 1431.818 ms | 35.62x |
+| point transform (1,000,000 points) | 1.381 ms | 12.753 ms | 9.23x |
+| bounding box (1,000,000 points) | 3.543 ms | 70.573 ms | 19.92x |
+| 3DS parse (51,200 faces) | 1.279 ms | 881.391 ms | 688.90x |
+
+These are the figures from one run of the unchanged `bench/bench.py` in the
+verify pass. Repeated runs of the same command move them: mojo-lib3ds normals
+40.1–43.9 ms, transform 1.21–1.38 ms, bounding box 3.31–3.60 ms, parse
+1.18–1.33 ms; the references move by up to about ±20% (corner normals
+1271–1838 ms, Assimp parse 847–961 ms). The machine was shared and loaded, so
+treat ratios as approximate to that extent. `bench/verify.md` records every
+run.
 
 The parse comparison includes pyassimp's Python object conversion. It is a
 full API-level extraction comparison, not a claim about Assimp's C parser
@@ -142,15 +150,21 @@ counted individually, `float32` at 4 B, `int64` at 8 B):
 
 `m3ds_mesh_normals` also re-reads `face_normals` and `adjacent[]` per corner
 through CSR offset ranges, so its effective byte count on real meshes is
-higher than the 100 shown and its intensity is lower. `m3ds_compose_nodes` runs
+higher than the 100 shown and its intensity is lower. Counting only the spins
+inside its inner re-scan loop gives 66 ops per prior incident face, so the
+ratio in the table is a lower bound. The 59/100 basis is the kernel's
+first-order work per corner (3 corners × (8 mul + 5 add) for the face normal
+and accumulation, plus 12 B in and 12 B out per corner); it is a source-count
+estimate, not a profiled figure. `m3ds_compose_nodes` runs
 on hundreds of nodes at most and has parent dependencies, so it has no
 independent large workload to send to a device.
 
 Gates checked in this session:
 
 - `nvidia-smi --query-gpu=memory.free --format=csv,noheader` reported
-  **5375 MiB** free, so the 4000 MiB device-availability gate passed; the
-  arithmetic-intensity gate did not.
+  **4583 MiB** free in the verify session (an earlier phase recorded
+  5375 MiB). Both are above 4000 MiB, so the device-availability gate passes;
+  the arithmetic-intensity gate did not.
 - Per the gate rule, the verdict is recorded here and no GPU code was written.
   No device allocation, kernel launch, or GPU measurement exists for this port,
   and no number in this section is a timing.
