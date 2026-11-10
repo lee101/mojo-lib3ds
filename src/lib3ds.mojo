@@ -134,11 +134,18 @@ def mesh_bounding_box(
     result[3] = 1.175494351e-38
     result[4] = 1.175494351e-38
     result[5] = 1.175494351e-38
+    # One running min/max per axis, no inner axis loop and no per-axis index math.
     for point in range(point_count):
-        for axis in range(3):
-            var value = vertices[3 * point + axis]
-            result[axis] = min(result[axis], value)
-            result[3 + axis] = max(result[3 + axis], value)
+        var base = 3 * point
+        var x = vertices[base]
+        var y = vertices[base + 1]
+        var z = vertices[base + 2]
+        result[0] = min(result[0], x)
+        result[1] = min(result[1], y)
+        result[2] = min(result[2], z)
+        result[3] = max(result[3], x)
+        result[4] = max(result[4], y)
+        result[5] = max(result[5], z)
 
 
 # lib3ds: lib3ds/vector.c lib3ds_vector_transform
