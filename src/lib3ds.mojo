@@ -121,10 +121,7 @@ def mesh_normals(
 
 
 # lib3ds: lib3ds/mesh.c lib3ds_mesh_bounding_box
-@export("m3ds_mesh_bounding_box")
-def mesh_bounding_box(
-    vertices_address: Int, point_count: Int, result_address: Int
-) abi("C"):
+def bounding_box_kernel(vertices_address: Int, point_count: Int, result_address: Int):
     var vertices = f32p(vertices_address)
     var result = f32p(result_address)
     result[0] = 3.402823466e38
@@ -146,6 +143,13 @@ def mesh_bounding_box(
         result[3] = max(result[3], x)
         result[4] = max(result[4], y)
         result[5] = max(result[5], z)
+
+
+@export("m3ds_mesh_bounding_box")
+def mesh_bounding_box(
+    vertices_address: Int, point_count: Int, result_address: Int
+) abi("C"):
+    bounding_box_kernel(vertices_address, point_count, result_address)
 
 
 # lib3ds: lib3ds/vector.c lib3ds_vector_transform
