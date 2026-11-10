@@ -126,6 +126,22 @@ not a measured one — the measured bytes column is still empty.
 | `Track.evaluate`, `Scene.evaluate` | **none** / **unroll** respectively, only if a real caller shows them hot | small N; O(N^2) set loop is the only structural concern |
 | any GPU path | **gpu: not justified** on current evidence | no kernel exceeds 2 flops/byte by the structural count; GPU verdict must be re-taken once the measured table exists |
 
+### 5.1 GPU phase verdict (taken this session)
+
+The GPU gate was evaluated and closed as **CPU only: memory-bound**; see the
+GPU section of the README. Recounted from the kernel bodies in
+`src/lib3ds.mojo` (not from the README table): `m3ds_transform_points` 0.75,
+`m3ds_mesh_bounding_box` 0.50, `m3ds_mesh_normals` 0.59, `m3ds_compose_nodes`
+1.00 flops/byte — every kernel is below the 2 flops/byte gate, so no device
+work was attempted. `nvidia-smi` reported 5375 MiB free, so the shared-GPU
+memory gate itself passed; it was the arithmetic gate that failed.
+
+No GPU timing was taken, and none is claimed. This does not depend on the
+blocked bench: the gate is arithmetic intensity, counted statically. The
+`pixi run bench` precondition was still unavailable this session —
+`flock -n /tmp/mojo-bench.lock` returned exit 1 with load average 22–28 — so
+the §3 measured table and §5 routing proposals remain unmeasured as before.
+
 ---
 
 ## 6. What unblocks this phase

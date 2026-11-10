@@ -126,8 +126,35 @@ The parse comparison includes pyassimp's Python object conversion. It is a
 full API-level extraction comparison, not a claim about Assimp's C parser
 alone.
 
-No GPU path is included. Point transforms and bounding boxes have less than
-one flop per byte moved, normal generation is dominated by irregular mesh
-adjacency, and node composition has parent dependencies. None has the greater
-than two flops per byte and independent large workload needed to justify GPU
-transfer and launch overhead for 3DS-sized meshes.
+## GPU: CPU only: memory-bound
+
+No GPU path is included. The GPU phase gate requires a kernel above roughly
+2 flops per byte before any device work is attempted. Every kernel in
+`src/lib3ds.mojo` is below it, counted from the kernel bodies (mul and add
+counted individually, `float32` at 4 B, `int64` at 8 B):
+
+| kernel | flops (per element) | bytes moved | flops/byte | bound |
+|---|---:|---:|---:|---|
+| `m3ds_transform_points` | 18 | 24 (12 in + 12 out) | 0.75 | memory |
+| `m3ds_mesh_bounding_box` | 6 | 12 (read-only stream) | 0.50 | memory |
+| `m3ds_mesh_normals` | 59 | 100 | 0.59 | memory / irregular adjacency |
+| `m3ds_compose_nodes` | 128 | 128 | 1.00 | latency, small N |
+
+`m3ds_mesh_normals` also re-reads `face_normals` and `adjacent[]` per corner
+through CSR offset ranges, so its effective byte count on real meshes is
+higher than the 100 shown and its intensity is lower. `m3ds_compose_nodes` runs
+on hundreds of nodes at most and has parent dependencies, so it has no
+independent large workload to send to a device.
+
+Gates checked in this session:
+
+- `nvidia-smi --query-gpu=memory.free --format=csv,noheader` reported
+  **5375 MiB** free, so the 4000 MiB device-availability gate passed; the
+  arithmetic-intensity gate did not.
+- Per the gate rule, the verdict is recorded here and no GPU code was written.
+  No device allocation, kernel launch, or GPU measurement exists for this port,
+  and no number in this section is a timing.
+
+The CPU path remains the only path. No GPU test is emitted, so the suite has
+nothing to skip on this or any other host: `pixi run test` reports 46 passed,
+which is the complete CPU suite, with zero skips and zero GPU tests.
